@@ -43,6 +43,9 @@ export class RoomManager {
     let player = room.players.get(token);
 
     if (player) {
+      if (player.socketId && player.socketId !== socketId) {
+        this.#socketMembership.delete(player.socketId);
+      }
       player.socketId = socketId;
       player.connected = true;
       player.name = name;
@@ -138,7 +141,7 @@ export class RoomManager {
     }
 
     const player = room.players.get(membership.playerToken);
-    if (player) {
+    if (player?.socketId === socketId) {
       player.connected = false;
       player.socketId = null;
     }

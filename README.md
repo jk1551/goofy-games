@@ -7,6 +7,7 @@ A browser-based party game platform where one screen hosts the party and players
 - React + Vite for the host and player experiences
 - Node.js + Express for the HTTP server
 - Socket.IO for real-time rooms and game events
+- Notistack for application notifications
 - npm workspaces for the client, server, and shared contracts
 - Node's built-in test runner for unit and regression tests
 
@@ -21,6 +22,8 @@ packages/
 ```
 
 Game rules stay on the server. React renders server-provided state and sends player actions. New games are registered as server-side modules and can reuse shared input components such as text, multiple choice, player voting, and drawing.
+
+Player identity and the last joined party are stored in browser storage. If a player refreshes the page or Socket.IO reconnects after a temporary network interruption, the client automatically rejoins with the same player token. The server restores that player's current game view rather than creating a duplicate player.
 
 ## Run locally
 

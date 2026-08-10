@@ -1,5 +1,4 @@
 import { ConnectionBadge } from "./components/ConnectionBadge.jsx";
-import { ToastViewport } from "./components/ToastViewport.jsx";
 import { usePartySocket } from "./hooks/usePartySocket.js";
 import { HostGameView } from "./views/HostGameView.jsx";
 import { HostLibraryView } from "./views/HostLibraryView.jsx";
@@ -47,7 +46,6 @@ export default function App() {
   return (
     <>
       {content}
-      <ToastViewport toasts={partySocket.toasts} onDismiss={partySocket.dismissToast} />
       <ConnectionBadge state={partySocket.connectionState} />
     </>
   );
