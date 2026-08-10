@@ -1,5 +1,6 @@
 import { Countdown } from "../components/Countdown.jsx";
 import { Logo } from "../components/Logo.jsx";
+import "../reveal.css";
 
 export function HostGameView({ party, game, onReturnToLibrary }) {
   const isReveal = game?.phase === "reveal" && game?.reveal;
