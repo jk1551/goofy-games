@@ -1,0 +1,79 @@
+.game-over-stage {
+  min-height: calc(100vh - 110px);
+  max-width: 780px;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 20px;
+}
+
+.game-over-stage__trophy {
+  font-size: 82px;
+  line-height: 1;
+  margin-bottom: 18px;
+  filter: drop-shadow(0 14px 20px rgba(24, 10, 55, 0.28));
+}
+
+.game-over-stage .eyebrow {
+  color: #fde68a;
+}
+
+.game-over-stage h1 {
+  margin: 12px 0 8px;
+  font: 700 clamp(48px, 8vw, 86px)/0.98 "Fredoka", sans-serif;
+}
+
+.game-over-stage > p {
+  margin: 0 0 28px;
+  color: #ddd6fe;
+  font-size: 18px;
+}
+
+.game-over-scoreboard {
+  width: min(620px, 92vw);
+  display: grid;
+  gap: 9px;
+  margin-bottom: 30px;
+}
+
+.game-over-score {
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.12);
+  text-align: left;
+}
+
+.game-over-score > span {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  font-weight: 800;
+}
+
+.game-over-score strong {
+  font-size: 17px;
+}
+
+.game-over-score b {
+  color: #fde68a;
+}
+
+.game-over-score--winner {
+  background: #facc15;
+  color: #3b2371;
+  transform: scale(1.025);
+}
+
+.game-over-score--winner b {
+  color: #3b2371;
+}
