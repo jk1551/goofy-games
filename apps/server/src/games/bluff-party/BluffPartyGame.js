@@ -147,7 +147,14 @@ export class BluffPartyGame extends BaseGame {
     this.reveal = this.buildReveal();
     this.state.inputType = "waiting";
     this.state.message = "Here’s how everyone did.";
-    this.transitionTo("reveal", REVEAL_DURATION_MS, () => this.startRound(this.state.round + 1));
+    this.transitionTo("reveal", REVEAL_DURATION_MS, () => this.finishReveal());
+  }
+
+  finishReveal() {
+    if (this.state.phase !== "reveal") {
+      return;
+    }
+    this.startRound(this.state.round + 1);
   }
 
   calculateScores() {
@@ -181,18 +188,20 @@ export class BluffPartyGame extends BaseGame {
   buildReveal() {
     return {
       correctAnswer: this.getCurrentPrompt().answer,
-      answers: this.choiceEntries.map((choice) => ({
-        id: choice.id,
-        text: choice.text,
-        isCorrect: choice.isCorrect,
-        authorName: choice.ownerToken ? this.getPlayerName(choice.ownerToken) : null,
-        voters: [...this.votes.entries()]
+      answers: this.choiceEntries.map((choice) => {
+        const voters = [...this.votes.entries()]
           .filter(([, choiceId]) => choiceId === choice.id)
-          .map(([playerToken]) => this.getPlayerName(playerToken)),
-        pointsEarned: choice.ownerToken
-          ? (this.roundPoints.get(choice.ownerToken) ?? 0)
-          : 0
-      })),
+          .map(([playerToken]) => this.getPlayerName(playerToken));
+
+        return {
+          id: choice.id,
+          text: choice.text,
+          isCorrect: choice.isCorrect,
+          authorName: choice.ownerToken ? this.getPlayerName(choice.ownerToken) : null,
+          voters,
+          pointsEarned: choice.ownerToken ? voters.length * BLUFF_POINTS : 0
+        };
+      }),
       scoreboard: this.roundPlayerTokens
         .map((playerToken) => {
           const player = this.room.players.get(playerToken);
