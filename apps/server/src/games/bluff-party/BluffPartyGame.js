@@ -3,6 +3,9 @@ import { BLUFF_PROMPTS } from "./prompts.js";
 
 const BLUFF_DURATION_MS = 45_000;
 const VOTE_DURATION_MS = 30_000;
+const REVEAL_DURATION_MS = 12_000;
+const TRUTH_POINTS = 1_000;
+const BLUFF_POINTS = 500;
 
 export class BluffPartyGame extends BaseGame {
   constructor(context) {
@@ -11,6 +14,8 @@ export class BluffPartyGame extends BaseGame {
     this.votes = new Map();
     this.choiceEntries = [];
     this.roundPlayerTokens = [];
+    this.roundPoints = new Map();
+    this.reveal = null;
     this.state = {
       ...this.state,
       gameId: "bluff-party",
@@ -22,13 +27,19 @@ export class BluffPartyGame extends BaseGame {
   }
 
   start() {
-    this.state.round = 1;
-    this.state.prompt = BLUFF_PROMPTS[0].question;
+    this.startRound(1);
+  }
+
+  startRound(round) {
+    this.state.round = round;
+    this.state.prompt = this.getCurrentPrompt().question;
     this.state.inputType = "text";
     this.state.message = "Write a convincing fake answer.";
     this.submissions.clear();
     this.votes.clear();
     this.choiceEntries = [];
+    this.roundPoints.clear();
+    this.reveal = null;
     this.roundPlayerTokens = [...this.room.players.keys()];
     this.transitionTo("submit-bluff", BLUFF_DURATION_MS, () => this.finishBluffSubmission());
   }
@@ -128,9 +139,76 @@ export class BluffPartyGame extends BaseGame {
   }
 
   finishVoting() {
+    if (this.state.phase !== "select-answer") {
+      return;
+    }
+
+    this.calculateScores();
+    this.reveal = this.buildReveal();
     this.state.inputType = "waiting";
-    this.state.message = "Votes are locked. Watch the main screen for the reveal.";
-    this.transitionTo("round-complete", null);
+    this.state.message = "Here’s how everyone did.";
+    this.transitionTo("reveal", REVEAL_DURATION_MS, () => this.startRound(this.state.round + 1));
+  }
+
+  calculateScores() {
+    this.roundPoints = new Map(this.roundPlayerTokens.map((playerToken) => [playerToken, 0]));
+
+    for (const [voterToken, choiceId] of this.votes.entries()) {
+      const choice = this.choiceEntries.find((entry) => entry.id === choiceId);
+      if (!choice) {
+        continue;
+      }
+
+      if (choice.isCorrect) {
+        this.addRoundPoints(voterToken, TRUTH_POINTS);
+      } else if (choice.ownerToken) {
+        this.addRoundPoints(choice.ownerToken, BLUFF_POINTS);
+      }
+    }
+
+    for (const playerToken of this.roundPlayerTokens) {
+      const player = this.room.players.get(playerToken);
+      if (player) {
+        player.score = Number(player.score ?? 0) + (this.roundPoints.get(playerToken) ?? 0);
+      }
+    }
+  }
+
+  addRoundPoints(playerToken, points) {
+    this.roundPoints.set(playerToken, (this.roundPoints.get(playerToken) ?? 0) + points);
+  }
+
+  buildReveal() {
+    return {
+      correctAnswer: this.getCurrentPrompt().answer,
+      answers: this.choiceEntries.map((choice) => ({
+        id: choice.id,
+        text: choice.text,
+        isCorrect: choice.isCorrect,
+        authorName: choice.ownerToken ? this.getPlayerName(choice.ownerToken) : null,
+        voters: [...this.votes.entries()]
+          .filter(([, choiceId]) => choiceId === choice.id)
+          .map(([playerToken]) => this.getPlayerName(playerToken)),
+        pointsEarned: choice.ownerToken
+          ? (this.roundPoints.get(choice.ownerToken) ?? 0)
+          : 0
+      })),
+      scoreboard: this.roundPlayerTokens
+        .map((playerToken) => {
+          const player = this.room.players.get(playerToken);
+          return {
+            id: player?.id ?? playerToken,
+            name: player?.name ?? "Player",
+            roundPoints: this.roundPoints.get(playerToken) ?? 0,
+            score: Number(player?.score ?? 0)
+          };
+        })
+        .sort((left, right) => right.score - left.score || right.roundPoints - left.roundPoints)
+    };
+  }
+
+  getPlayerName(playerToken) {
+    return this.room.players.get(playerToken)?.name ?? "Player";
   }
 
   getPublicState() {
@@ -140,7 +218,8 @@ export class BluffPartyGame extends BaseGame {
       voteCount: this.votes.size,
       choices: this.state.phase === "select-answer"
         ? this.choiceEntries.map(({ id, text }) => ({ id, text }))
-        : []
+        : [],
+      reveal: this.state.phase === "reveal" ? this.reveal : null
     };
   }
 
