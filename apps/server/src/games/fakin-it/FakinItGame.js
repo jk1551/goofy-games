@@ -203,22 +203,25 @@ export class FakinItGame extends BaseGame {
     const nonFakerTokens = this.roundPlayerTokens.filter((playerToken) => playerToken !== this.fakerToken);
     const correctVoters = nonFakerTokens.filter((playerToken) => this.getVotedForToken(playerToken) === this.fakerToken);
     const caught = correctVoters.length === nonFakerTokens.length;
-
-    for (const playerToken of correctVoters) {
-      this.awardPoints(playerToken, SLEUTH_POINTS[this.attempt - 1], "sleuthPoints");
-      if (caught) {
-        this.awardPoints(playerToken, CAUGHT_BONUS[this.attempt - 1], "sleuthPoints");
-      }
-    }
-
-    if (!caught) {
-      this.awardPoints(this.fakerToken, FAKER_SURVIVE_POINTS, "fakerPoints");
-      if (this.attempt >= MAX_ATTEMPTS) {
-        this.awardPoints(this.fakerToken, FAKER_ESCAPE_BONUS, "fakerPoints");
-      }
-    }
-
     const roundComplete = caught || this.attempt >= MAX_ATTEMPTS;
+
+    if (roundComplete) {
+      for (const playerToken of correctVoters) {
+        this.awardPoints(playerToken, SLEUTH_POINTS[this.attempt - 1], "sleuthPoints");
+        if (caught) {
+          this.awardPoints(playerToken, CAUGHT_BONUS[this.attempt - 1], "sleuthPoints");
+        }
+      }
+
+      if (!caught) {
+        this.awardPoints(
+          this.fakerToken,
+          (FAKER_SURVIVE_POINTS * MAX_ATTEMPTS) + FAKER_ESCAPE_BONUS,
+          "fakerPoints"
+        );
+      }
+    }
+
     this.reveal = this.buildReveal({ caught, roundComplete });
     this.state.inputType = "waiting";
     this.state.message = caught
