@@ -1,0 +1,17 @@
+{
+  "name": "@goofy-games/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@goofy-games/shared": "*",
+    "cors": "2.8.6",
+    "express": "5.2.1",
+    "socket.io": "4.8.3"
+  }
+}

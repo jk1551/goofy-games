@@ -1,0 +1,21 @@
+{
+  "name": "@goofy-games/client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "@goofy-games/shared": "*",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "socket.io-client": "4.8.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "6.0.4",
+    "vite": "8.1.5"
+  }
+}
