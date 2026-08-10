@@ -2,9 +2,11 @@ import { Countdown } from "../components/Countdown.jsx";
 import { Logo } from "../components/Logo.jsx";
 import "../reveal.css";
 import "../game-over.css";
+import "../fakin-it.css";
 
 export function HostGameView({ party, game, onReturnToLibrary }) {
   const isReveal = game?.phase === "reveal" && game?.reveal;
+  const isFakinItReveal = isReveal && game.reveal?.type === "fakin-it";
   const isGameOver = game?.phase === "game-over" && game?.finalResult;
 
   return (
@@ -19,8 +21,10 @@ export function HostGameView({ party, game, onReturnToLibrary }) {
 
       {isGameOver ? (
         <GameOverStage game={game} onReturnToLibrary={onReturnToLibrary} />
+      ) : isFakinItReveal ? (
+        <FakinItRevealStage game={game} />
       ) : isReveal ? (
-        <RevealStage game={game} />
+        <BluffRevealStage game={game} />
       ) : (
         <PlayStage party={party} game={game} />
       )}
@@ -30,18 +34,25 @@ export function HostGameView({ party, game, onReturnToLibrary }) {
 
 function PlayStage({ party, game }) {
   const isVoting = game?.phase === "select-answer";
+  const isReady = game?.inputType === "ready";
   const completed = isVoting ? (game?.voteCount ?? 0) : (game?.submissionCount ?? 0);
-  const label = isVoting ? "votes" : "answers";
+  const label = isVoting ? "votes" : isReady ? "ready" : "answers";
   const roundLabel = game?.totalRounds
     ? `Round ${game?.round ?? 1} of ${game.totalRounds}`
     : `Round ${game?.round ?? 1}`;
+  const detailLabel = game?.category
+    ? `${roundLabel} · ${game.category}${game.attempt ? ` · Attempt ${game.attempt}` : ""}`
+    : roundLabel;
 
   return (
     <section className="host-stage">
-      <div className="host-stage__round">{roundLabel}</div>
+      <div className="host-stage__round">{detailLabel}</div>
       <Countdown deadline={game?.deadline} />
       <span className="eyebrow">{game?.message ?? "Starting game…"}</span>
       <h1>{game?.prompt ?? "Everybody get ready!"}</h1>
+
+      {(game?.responses?.length ?? 0) > 0 && <FakinResponses responses={game.responses} />}
+
       <div className="submission-meter">
         <div>
           <strong>{completed}</strong>
@@ -55,7 +66,7 @@ function PlayStage({ party, game }) {
   );
 }
 
-function RevealStage({ game }) {
+function BluffRevealStage({ game }) {
   const finalRound = game.round >= game.totalRounds;
 
   return (
@@ -86,23 +97,97 @@ function RevealStage({ game }) {
           ))}
         </div>
 
-        <aside className="scoreboard-card">
-          <span className="eyebrow">Updated scores</span>
-          <h2>Leaderboard</h2>
-          <div className="scoreboard-list">
-            {game.reveal.scoreboard.map((player, index) => (
-              <div className="scoreboard-row" key={player.id}>
-                <span className="scoreboard-row__rank">{index + 1}</span>
-                <strong>{player.name}</strong>
-                <span className="scoreboard-row__round">+{player.roundPoints.toLocaleString()}</span>
-                <b>{player.score.toLocaleString()}</b>
-              </div>
-            ))}
-          </div>
-          <p>{finalRound ? "Final results coming up…" : "Next round starts automatically."}</p>
-        </aside>
+        <Scoreboard scoreboard={game.reveal.scoreboard} footer={finalRound ? "Final results coming up…" : "Next round starts automatically."} />
       </div>
     </section>
+  );
+}
+
+function FakinItRevealStage({ game }) {
+  const reveal = game.reveal;
+  const heading = reveal.caught
+    ? `${reveal.fakerName} was Fakin' It!`
+    : reveal.roundComplete
+      ? `${reveal.fakerName} fooled everybody!`
+      : "The Faker survives…";
+  const status = reveal.caught
+    ? "Unanimous catch"
+    : reveal.roundComplete
+      ? "Three attempts survived"
+      : "The room wasn't unanimous";
+
+  return (
+    <section className="reveal-stage">
+      <div className="reveal-stage__heading">
+        <div>
+          <div className="host-stage__round">Round {game.round} of {game.totalRounds} · {reveal.category} · Attempt {reveal.attempt}</div>
+          <span className="eyebrow">{status}</span>
+          <h1>{heading}</h1>
+          <div className="fakin-reveal-status">Task: {reveal.task}</div>
+        </div>
+        <Countdown deadline={game.deadline} />
+      </div>
+
+      {(reveal.responses?.length ?? 0) > 0 && <FakinResponses responses={reveal.responses} />}
+
+      <div className="reveal-layout">
+        <div className="fakin-vote-list">
+          {reveal.votes.map((vote) => (
+            <div className="fakin-vote" key={vote.voterName}>
+              <span>{vote.voterName}</span>
+              <span>→</span>
+              <strong>{vote.accusedName}</strong>
+            </div>
+          ))}
+        </div>
+
+        {reveal.roundComplete ? (
+          <Scoreboard
+            scoreboard={reveal.scoreboard}
+            footer={game.round >= game.totalRounds ? "Final results coming up…" : "A new Faker is coming next round."}
+          />
+        ) : (
+          <aside className="scoreboard-card">
+            <span className="eyebrow">Still undercover</span>
+            <h2>No identity reveal yet</h2>
+            <p>The same Faker stays hidden for the next attempt.</p>
+          </aside>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function FakinResponses({ responses }) {
+  return (
+    <div className="fakin-response-grid">
+      {responses.map((response) => (
+        <div className="fakin-response" key={response.name}>
+          <span>{response.name}</span>
+          <strong>{response.text}</strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Scoreboard({ scoreboard, footer }) {
+  return (
+    <aside className="scoreboard-card">
+      <span className="eyebrow">Updated scores</span>
+      <h2>Leaderboard</h2>
+      <div className="scoreboard-list">
+        {scoreboard.map((player, index) => (
+          <div className="scoreboard-row" key={player.id}>
+            <span className="scoreboard-row__rank">{index + 1}</span>
+            <strong>{player.name}</strong>
+            <span className="scoreboard-row__round">+{player.roundPoints.toLocaleString()}</span>
+            <b>{player.score.toLocaleString()}</b>
+          </div>
+        ))}
+      </div>
+      <p>{footer}</p>
+    </aside>
   );
 }
 
@@ -115,9 +200,22 @@ function GameOverStage({ game, onReturnToLibrary }) {
   return (
     <section className="game-over-stage">
       <div className="game-over-stage__trophy">🏆</div>
-      <span className="eyebrow">Bluff Party champion{winners.length === 1 ? "" : "s"}</span>
+      <span className="eyebrow">{game.title ?? "Game"} champion{winners.length === 1 ? "" : "s"}</span>
       <h1>{winnerText}</h1>
       <p>{game.message}</p>
+
+      {game.gameId === "fakin-it" && (
+        <div className="fakin-role-awards">
+          <div className="fakin-role-award">
+            <span>Best Faker</span>
+            <strong>{game.finalResult.bestFaker?.name ?? "—"}</strong>
+          </div>
+          <div className="fakin-role-award">
+            <span>Best Sleuth</span>
+            <strong>{game.finalResult.bestSleuth?.name ?? "—"}</strong>
+          </div>
+        </div>
+      )}
 
       <div className="game-over-scoreboard">
         {game.finalResult.scoreboard.map((player, index) => (
