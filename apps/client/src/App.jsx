@@ -1,4 +1,5 @@
 import { ConnectionBadge } from "./components/ConnectionBadge.jsx";
+import { ToastViewport } from "./components/ToastViewport.jsx";
 import { usePartySocket } from "./hooks/usePartySocket.js";
 import { HostGameView } from "./views/HostGameView.jsx";
 import { HostLibraryView } from "./views/HostLibraryView.jsx";
@@ -15,7 +16,6 @@ export default function App() {
       <LandingView
         onCreate={partySocket.createParty}
         onJoin={partySocket.joinParty}
-        error={partySocket.error}
       />
     );
   } else if (role === "host" && party.status === "game") {
@@ -32,7 +32,6 @@ export default function App() {
         party={party}
         onSelectGame={partySocket.selectGame}
         onStartGame={partySocket.startGame}
-        error={partySocket.error}
       />
     );
   } else {
@@ -41,7 +40,6 @@ export default function App() {
         party={party}
         game={game}
         onSubmit={partySocket.submitAction}
-        error={partySocket.error}
       />
     );
   }
@@ -49,6 +47,7 @@ export default function App() {
   return (
     <>
       {content}
+      <ToastViewport toasts={partySocket.toasts} onDismiss={partySocket.dismissToast} />
       <ConnectionBadge state={partySocket.connectionState} />
     </>
   );

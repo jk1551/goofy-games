@@ -8,7 +8,7 @@ A browser-based party game platform where one screen hosts the party and players
 - Node.js + Express for the HTTP server
 - Socket.IO for real-time rooms and game events
 - npm workspaces for the client, server, and shared contracts
-- Node's built-in test runner for server tests
+- Node's built-in test runner for unit and regression tests
 
 ## Project structure
 
@@ -31,13 +31,15 @@ npm run dev
 
 Open `http://localhost:5173`. The server listens on `http://localhost:3001`.
 
-To test from phones on the same network, start Vite with its network host enabled (already configured), then open your computer's LAN IP on port `5173`.
+To test from phones on the same network, open your computer's LAN IP on port `5173`, such as `http://192.168.1.20:5173`. Localhost and private-network origins on Vite's default port are accepted automatically.
+
+For production, set `CLIENT_ORIGIN` to the exact allowed frontend origin. Multiple origins can be separated with commas.
 
 ## Commands
 
 ```bash
 npm run dev     # start client and server
-npm run test    # run server tests
+npm run test    # run client/server unit and regression tests
 npm run build   # build the React client
 npm run check   # test and build
 ```

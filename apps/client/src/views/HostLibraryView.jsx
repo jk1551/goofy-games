@@ -3,7 +3,7 @@ import { GameCard } from "../components/GameCard.jsx";
 import { Logo } from "../components/Logo.jsx";
 import { PlayerList } from "../components/PlayerList.jsx";
 
-export function HostLibraryView({ party, onSelectGame, onStartGame, error }) {
+export function HostLibraryView({ party, onSelectGame, onStartGame }) {
   const selectedGame = GAME_CATALOG.find((game) => game.id === party.selectedGameId);
   const enoughPlayers = party.players.length >= (selectedGame?.minPlayers ?? 1);
 
@@ -55,7 +55,6 @@ export function HostLibraryView({ party, onSelectGame, onStartGame, error }) {
               Start game <span>→</span>
             </button>
           </div>
-          {error && <p className="form-error">{error}</p>}
         </section>
       </div>
     </main>

@@ -1,0 +1,44 @@
+const PLAYER_TOKEN_KEY = "goofy-games-player-token";
+
+export function getOrCreatePlayerToken({ storage = globalThis.localStorage, cryptoApi = globalThis.crypto } = {}) {
+  const existingToken = readPlayerToken(storage);
+  if (existingToken) {
+    return existingToken;
+  }
+
+  const token = createPlayerToken(cryptoApi);
+  writePlayerToken(storage, token);
+  return token;
+}
+
+export function createPlayerToken(cryptoApi = globalThis.crypto) {
+  if (typeof cryptoApi?.randomUUID === "function") {
+    return cryptoApi.randomUUID();
+  }
+
+  if (typeof cryptoApi?.getRandomValues === "function") {
+    const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = [...bytes].map((value) => value.toString(16).padStart(2, "0"));
+    return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10).join("")}`;
+  }
+
+  return `player-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+function readPlayerToken(storage) {
+  try {
+    return storage?.getItem(PLAYER_TOKEN_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function writePlayerToken(storage, token) {
+  try {
+    storage?.setItem(PLAYER_TOKEN_KEY, token);
+  } catch {
+    // A blocked storage API should never stop a player from joining.
+  }
+}

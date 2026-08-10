@@ -4,7 +4,6 @@ import { Countdown } from "./Countdown.jsx";
 export function PlayerInputRenderer({ game, onSubmit }) {
   const [value, setValue] = useState("");
   const [submitted, setSubmitted] = useState(Boolean(game?.hasSubmitted));
-  const [error, setError] = useState("");
 
   if (!game) {
     return <WaitingMessage title="You're in!" message="The host is choosing a game." />;
@@ -20,12 +19,9 @@ export function PlayerInputRenderer({ game, onSubmit }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setError("");
     const result = await onSubmit({ type: "text", value });
     if (result) {
       setSubmitted(true);
-    } else {
-      setError("Your answer was not submitted. Try again.");
     }
   };
 
@@ -52,7 +48,6 @@ export function PlayerInputRenderer({ game, onSubmit }) {
           <span>{value.length}/120</span>
           <button className="button button--primary" type="submit">Lock it in</button>
         </div>
-        {error && <p className="form-error">{error}</p>}
       </form>
     </div>
   );

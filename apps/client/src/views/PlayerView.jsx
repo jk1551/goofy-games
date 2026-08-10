@@ -1,7 +1,7 @@
 import { Logo } from "../components/Logo.jsx";
 import { PlayerInputRenderer } from "../components/PlayerInputRenderer.jsx";
 
-export function PlayerView({ party, game, onSubmit, error }) {
+export function PlayerView({ party, game, onSubmit }) {
   return (
     <main className="player-shell">
       <header className="player-header">
@@ -10,7 +10,6 @@ export function PlayerView({ party, game, onSubmit, error }) {
       </header>
       <section className="player-content">
         <PlayerInputRenderer key={`${game?.phase}-${game?.round}`} game={game} onSubmit={onSubmit} />
-        {error && <p className="form-error form-error--center">{error}</p>}
       </section>
     </main>
   );

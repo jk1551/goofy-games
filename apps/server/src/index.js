@@ -2,16 +2,17 @@ import http from "node:http";
 import cors from "cors";
 import express from "express";
 import { Server } from "socket.io";
-import { config } from "./config.js";
+import { config, createCorsOriginValidator } from "./config.js";
 import { createGameRegistry } from "./games/createGameRegistry.js";
 import { RoomManager } from "./rooms/RoomManager.js";
 import { registerSocketHandlers } from "./socket/registerSocketHandlers.js";
 
 const app = express();
 const server = http.createServer(app);
+const corsOrigin = createCorsOriginValidator(config.clientOrigins);
 const io = new Server(server, {
   cors: {
-    origin: config.clientOrigin,
+    origin: corsOrigin,
     methods: ["GET", "POST"]
   }
 });
@@ -19,7 +20,7 @@ const io = new Server(server, {
 const roomManager = new RoomManager();
 const gameRegistry = createGameRegistry();
 
-app.use(cors({ origin: config.clientOrigin }));
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json());
 
 app.get("/api/health", (_request, response) => {

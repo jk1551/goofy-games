@@ -11,7 +11,7 @@
     "dev": "node scripts/dev.js",
     "build": "npm run build -w @goofy-games/client",
     "start": "npm run start -w @goofy-games/server",
-    "test": "npm run test -w @goofy-games/server",
+    "test": "npm run test --workspaces --if-present",
     "check": "npm run test && npm run build"
   },
   "engines": {

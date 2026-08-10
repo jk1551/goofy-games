@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Logo } from "../components/Logo.jsx";
 
-export function LandingView({ onCreate, onJoin, error }) {
+export function LandingView({ onCreate, onJoin }) {
   const [roomCode, setRoomCode] = useState("");
   const [displayName, setDisplayName] = useState("");
 
@@ -57,7 +57,6 @@ export function LandingView({ onCreate, onJoin, error }) {
             />
             <button className="button button--dark" type="submit">Join game</button>
           </form>
-          {error && <p className="form-error">{error}</p>}
         </div>
       </section>
 
