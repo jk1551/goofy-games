@@ -1,0 +1,105 @@
+.fakin-response-grid {
+  width: min(900px, 92vw);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.fakin-response {
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  text-align: left;
+}
+
+.fakin-response span {
+  display: block;
+  margin-bottom: 5px;
+  color: #ddd6fe;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.fakin-response strong {
+  font: 700 20px/1.25 "Fredoka", sans-serif;
+}
+
+.fakin-reveal-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 9px 13px;
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.18);
+  color: #fde68a;
+  font-weight: 800;
+}
+
+.fakin-vote-list {
+  display: grid;
+  gap: 10px;
+}
+
+.fakin-vote {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 13px 15px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.fakin-vote span:first-child {
+  text-align: right;
+  color: #ddd6fe;
+  font-weight: 700;
+}
+
+.fakin-vote span:nth-child(2) {
+  color: #fde68a;
+}
+
+.fakin-vote strong {
+  text-align: left;
+}
+
+.fakin-role-awards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: min(620px, 92vw);
+  margin: -14px 0 28px;
+}
+
+.fakin-role-award {
+  padding: 13px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.fakin-role-award span {
+  display: block;
+  color: #ddd6fe;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.fakin-role-award strong {
+  display: block;
+  margin-top: 4px;
+  font: 700 18px/1.2 "Fredoka", sans-serif;
+}
+
+@media (max-width: 640px) {
+  .fakin-role-awards {
+    grid-template-columns: 1fr;
+  }
+}

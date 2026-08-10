@@ -9,7 +9,7 @@ export const GAME_CATALOG = Object.freeze([
     name: "Bluff Party",
     description: "Invent believable lies, spot the truth, and fool your friends.",
     emoji: "🎭",
-    minPlayers: 3,
+    minPlayers: 2,
     maxPlayers: 10,
     status: GAME_STATUS.AVAILABLE,
     accent: "purple",
@@ -29,11 +29,21 @@ export const GAME_CATALOG = Object.freeze([
     ])
   },
   {
+    id: "fakin-it",
+    name: "Fakin' It",
+    description: "Follow secret social prompts while one hidden Faker tries to blend in.",
+    emoji: "🕵️",
+    minPlayers: 2,
+    maxPlayers: 6,
+    status: GAME_STATUS.AVAILABLE,
+    accent: "blue"
+  },
+  {
     id: "quick-draw",
     name: "Quick Draw",
     description: "Draw strange prompts and race to identify everyone else's art.",
     emoji: "✏️",
-    minPlayers: 3,
+    minPlayers: 2,
     maxPlayers: 12,
     status: GAME_STATUS.COMING_SOON,
     accent: "yellow"
@@ -43,7 +53,7 @@ export const GAME_CATALOG = Object.freeze([
     name: "Majority Rules",
     description: "Predict the answer the room will choose most often.",
     emoji: "🗳️",
-    minPlayers: 3,
+    minPlayers: 2,
     maxPlayers: 16,
     status: GAME_STATUS.COMING_SOON,
     accent: "blue"
