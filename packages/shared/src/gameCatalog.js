@@ -29,6 +29,16 @@ export const GAME_CATALOG = Object.freeze([
     ])
   },
   {
+    id: "fakin-it",
+    name: "Fakin' It",
+    description: "Follow secret social prompts while one hidden Faker tries to blend in.",
+    emoji: "🕵️",
+    minPlayers: 3,
+    maxPlayers: 6,
+    status: GAME_STATUS.AVAILABLE,
+    accent: "blue"
+  },
+  {
     id: "quick-draw",
     name: "Quick Draw",
     description: "Draw strange prompts and race to identify everyone else's art.",
