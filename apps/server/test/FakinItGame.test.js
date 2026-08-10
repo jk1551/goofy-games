@@ -111,7 +111,7 @@ test("a unanimous non-Faker vote catches the Faker and awards sleuth points", ()
   game.stop();
 });
 
-test("a split vote keeps the same Faker secret for the next attempt", () => {
+test("a split vote keeps the same Faker and all score signals secret", () => {
   const game = createStartedGame();
   readyEveryone(game);
 
@@ -125,6 +125,9 @@ test("a split vote keeps the same Faker secret for the next attempt", () => {
   assert.equal(reveal.fakerName, null);
   assert.deepEqual(reveal.scoreboard, []);
   assert.equal(reveal.votes.every((vote) => vote.correct === null), true);
+  assert.equal(game.room.players.get("player-1").score, 0);
+  assert.equal(game.room.players.get("player-2").score, 0);
+  assert.equal(game.room.players.get("player-3").score, 0);
 
   game.finishReveal();
   const nextAttempt = game.getPublicState();
@@ -178,5 +181,27 @@ test("Text You Up gives the Faker a related prompt and reveals answers before vo
   assert.equal(state.phase, "select-answer");
   assert.equal(state.prompt, FAKIN_IT_ROUNDS[4].prompts[0].question);
   assert.deepEqual(state.responses.map((response) => response.name), ["Alice", "Bob", "Cara"]);
+  game.stop();
+});
+
+test("finishing Text You Up ends the game and reports winners and role awards", () => {
+  const game = createStartedGame();
+  game.fakerDeck = ["player-1"];
+  game.startRound(5);
+
+  game.handlePlayerAction({ playerToken: "player-1", action: { type: "text", value: "Phone charger" } });
+  game.handlePlayerAction({ playerToken: "player-2", action: { type: "text", value: "Toothbrush" } });
+  game.handlePlayerAction({ playerToken: "player-3", action: { type: "text", value: "Car" } });
+  voteFor(game, "player-1", "Bob");
+  voteFor(game, "player-2", "Alice");
+  voteFor(game, "player-3", "Alice");
+
+  game.finishReveal();
+  const state = game.getPublicState();
+  assert.equal(state.phase, "game-over");
+  assert.equal(state.finalResult.winners.length, 2);
+  assert.deepEqual(state.finalResult.winners.map((winner) => winner.name), ["Bob", "Cara"]);
+  assert.equal(state.finalResult.bestSleuth.points, 375);
+  assert.equal(state.finalResult.bestFaker.points, 0);
   game.stop();
 });
