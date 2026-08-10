@@ -9,7 +9,7 @@ export const GAME_CATALOG = Object.freeze([
     name: "Bluff Party",
     description: "Invent believable lies, spot the truth, and fool your friends.",
     emoji: "🎭",
-    minPlayers: 3,
+    minPlayers: 2,
     maxPlayers: 10,
     status: GAME_STATUS.AVAILABLE,
     accent: "purple",
@@ -33,7 +33,7 @@ export const GAME_CATALOG = Object.freeze([
     name: "Fakin' It",
     description: "Follow secret social prompts while one hidden Faker tries to blend in.",
     emoji: "🕵️",
-    minPlayers: 3,
+    minPlayers: 2,
     maxPlayers: 6,
     status: GAME_STATUS.AVAILABLE,
     accent: "blue"
