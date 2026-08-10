@@ -1,11 +1,29 @@
 import { GAME_CATALOG } from "@goofy-games/shared";
+import { useEffect, useMemo, useState } from "react";
 import { GameCard } from "../components/GameCard.jsx";
 import { Logo } from "../components/Logo.jsx";
 import { PlayerList } from "../components/PlayerList.jsx";
+import "../game-settings.css";
+
+function getDefaultSettings(game) {
+  return Object.fromEntries(
+    (game?.settings ?? []).map((setting) => [setting.id, setting.defaultValue])
+  );
+}
 
 export function HostLibraryView({ party, onSelectGame, onStartGame }) {
   const selectedGame = GAME_CATALOG.find((game) => game.id === party.selectedGameId);
   const enoughPlayers = party.players.length >= (selectedGame?.minPlayers ?? 1);
+  const defaults = useMemo(() => getDefaultSettings(selectedGame), [selectedGame]);
+  const [settings, setSettings] = useState(defaults);
+
+  useEffect(() => {
+    setSettings(defaults);
+  }, [defaults]);
+
+  const updateSetting = (settingId, value) => {
+    setSettings((current) => ({ ...current, [settingId]: value }));
+  };
 
   return (
     <main className="dashboard-shell">
@@ -40,6 +58,32 @@ export function HostLibraryView({ party, onSelectGame, onStartGame }) {
             ))}
           </div>
 
+          {(selectedGame?.settings?.length ?? 0) > 0 && (
+            <section className="game-settings-panel" aria-label={`${selectedGame.name} settings`}>
+              <div>
+                <span className="eyebrow">Game settings</span>
+                <h2>Customize {selectedGame.name}</h2>
+              </div>
+              <div className="game-settings-grid">
+                {selectedGame.settings.map((setting) => (
+                  <label className="game-setting" key={setting.id}>
+                    <span>{setting.label}</span>
+                    {setting.type === "select" && (
+                      <select
+                        value={settings[setting.id] ?? setting.defaultValue}
+                        onChange={(event) => updateSetting(setting.id, Number(event.target.value))}
+                      >
+                        {setting.options.map((option) => (
+                          <option value={option.value} key={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                    )}
+                  </label>
+                ))}
+              </div>
+            </section>
+          )}
+
           <div className="start-bar">
             <div>
               <span>Up next</span>
@@ -49,7 +93,7 @@ export function HostLibraryView({ party, onSelectGame, onStartGame }) {
             <button
               className="button button--primary button--large"
               type="button"
-              onClick={() => onStartGame(party.selectedGameId)}
+              onClick={() => onStartGame(party.selectedGameId, settings)}
               disabled={!enoughPlayers}
             >
               Start game <span>→</span>
