@@ -1,8 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useSnackbar } from "notistack";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CLIENT_EVENTS, SERVER_EVENTS } from "@goofy-games/shared";
 import { socket } from "../lib/socket.js";
 import { getOrCreatePlayerToken } from "../utils/playerToken.js";
-import { useToastQueue } from "./useToastQueue.js";
+import {
+  clearPlayerSession,
+  readPlayerSession,
+  savePlayerSession
+} from "../utils/playerSession.js";
 
 const ACTION_TIMEOUT_MS = 6000;
 
@@ -11,6 +16,7 @@ function emitWithAck(eventName, payload = {}) {
     if (!socket.connected) {
       resolve({
         ok: false,
+        source: "network",
         error: "Not connected to the game server yet. Check that the server is running and try again."
       });
       return;
@@ -20,41 +26,127 @@ function emitWithAck(eventName, payload = {}) {
       if (timeoutError) {
         resolve({
           ok: false,
+          source: "network",
           error: "The game server did not respond. Check your network connection and try again."
         });
         return;
       }
-      resolve(result);
+
+      if (!result) {
+        resolve({
+          ok: false,
+          source: "server",
+          error: "The game server returned an invalid response."
+        });
+        return;
+      }
+
+      resolve({ ...result, source: "server" });
     });
   });
 }
 
 export function usePartySocket() {
+  const { enqueueSnackbar } = useSnackbar();
   const [connectionState, setConnectionState] = useState(socket.connected ? "connected" : "connecting");
   const [role, setRole] = useState(null);
   const [party, setParty] = useState(null);
   const [game, setGame] = useState(null);
-  const { toasts, showToast, dismissToast } = useToastQueue();
+  const roleRef = useRef(null);
+  const restoreInFlightRef = useRef(false);
+  const restoredSocketIdRef = useRef(null);
 
   useEffect(() => {
-    const handleConnect = () => setConnectionState("connected");
+    roleRef.current = role;
+  }, [role]);
+
+  const applyPlayerJoin = useCallback((result, session) => {
+    const savedSession = savePlayerSession({
+      roomCode: result.room.code,
+      displayName: session.displayName,
+      playerToken: result.playerToken ?? session.playerToken
+    });
+
+    roleRef.current = "player";
+    restoredSocketIdRef.current = socket.id;
+    setRole("player");
+    setParty(result.room);
+    setGame(result.game);
+    return savedSession;
+  }, []);
+
+  const restoreStoredPlayerSession = useCallback(async ({ announce = false } = {}) => {
+    if (
+      !socket.connected ||
+      roleRef.current === "host" ||
+      restoreInFlightRef.current ||
+      restoredSocketIdRef.current === socket.id
+    ) {
+      return false;
+    }
+
+    const session = readPlayerSession();
+    if (!session) {
+      return false;
+    }
+
+    restoreInFlightRef.current = true;
+    try {
+      const result = await emitWithAck(CLIENT_EVENTS.JOIN_PARTY, session);
+      if (result?.ok) {
+        applyPlayerJoin(result, session);
+        if (announce) {
+          enqueueSnackbar(`Rejoined party ${result.room.code}.`, { variant: "success" });
+        }
+        return true;
+      }
+
+      if (result?.source === "server") {
+        clearPlayerSession();
+        restoredSocketIdRef.current = null;
+        roleRef.current = null;
+        setRole(null);
+        setParty(null);
+        setGame(null);
+        enqueueSnackbar(result?.error ?? "Your previous party is no longer available.", { variant: "warning" });
+      }
+
+      return false;
+    } finally {
+      restoreInFlightRef.current = false;
+    }
+  }, [applyPlayerJoin, enqueueSnackbar]);
+
+  useEffect(() => {
+    const handleConnect = () => {
+      const isReconnect = roleRef.current === "player";
+      setConnectionState("connected");
+      void restoreStoredPlayerSession({ announce: isReconnect });
+    };
     const handleConnectError = () => {
       setConnectionState("disconnected");
-      showToast("Could not connect to the game server. Make sure this device can reach port 3001 on the host computer.");
+      enqueueSnackbar(
+        "Could not connect to the game server. Make sure this device can reach port 3001 on the host computer.",
+        { variant: "error" }
+      );
     };
     const handleDisconnect = (reason) => {
+      restoredSocketIdRef.current = null;
       setConnectionState("disconnected");
       if (reason !== "io client disconnect") {
-        showToast("Connection lost. Goofy Games is trying to reconnect.");
+        enqueueSnackbar("Connection lost. Goofy Games is trying to reconnect.", { variant: "warning" });
       }
     };
     const handlePartyUpdated = (nextParty) => setParty(nextParty);
     const handleGameUpdated = (nextGame) => setGame(nextGame);
     const handlePartyClosed = () => {
+      clearPlayerSession();
+      restoredSocketIdRef.current = null;
+      roleRef.current = null;
       setParty(null);
       setGame(null);
       setRole(null);
-      showToast("The host ended this party.");
+      enqueueSnackbar("The host ended this party.", { variant: "info" });
     };
 
     socket.on("connect", handleConnect);
@@ -64,6 +156,10 @@ export function usePartySocket() {
     socket.on(SERVER_EVENTS.GAME_UPDATED, handleGameUpdated);
     socket.on(SERVER_EVENTS.PARTY_CLOSED, handlePartyClosed);
 
+    if (socket.connected) {
+      handleConnect();
+    }
+
     return () => {
       socket.off("connect", handleConnect);
       socket.off("connect_error", handleConnectError);
@@ -72,43 +168,46 @@ export function usePartySocket() {
       socket.off(SERVER_EVENTS.GAME_UPDATED, handleGameUpdated);
       socket.off(SERVER_EVENTS.PARTY_CLOSED, handlePartyClosed);
     };
-  }, [showToast]);
+  }, [enqueueSnackbar, restoreStoredPlayerSession]);
 
   const runAction = useCallback(async (eventName, payload) => {
     try {
       const result = await emitWithAck(eventName, payload);
       if (!result?.ok) {
-        showToast(result?.error ?? "Something went wrong.");
+        enqueueSnackbar(result?.error ?? "Something went wrong.", { variant: "error" });
         return null;
       }
       return result;
     } catch {
-      showToast("An unexpected error occurred while talking to the game server.");
+      enqueueSnackbar("An unexpected error occurred while talking to the game server.", { variant: "error" });
       return null;
     }
-  }, [showToast]);
+  }, [enqueueSnackbar]);
 
   const createParty = useCallback(async () => {
     const result = await runAction(CLIENT_EVENTS.CREATE_PARTY);
     if (result) {
+      clearPlayerSession();
+      restoredSocketIdRef.current = null;
+      roleRef.current = "host";
       setRole("host");
       setParty(result.room);
+      setGame(null);
     }
   }, [runAction]);
 
   const joinParty = useCallback(async ({ roomCode, displayName }) => {
-    const playerToken = getOrCreatePlayerToken();
-    const result = await runAction(CLIENT_EVENTS.JOIN_PARTY, {
-      roomCode,
-      displayName,
-      playerToken
-    });
+    const session = {
+      roomCode: String(roomCode ?? "").trim().toUpperCase(),
+      displayName: String(displayName ?? "").trim(),
+      playerToken: getOrCreatePlayerToken()
+    };
+
+    const result = await runAction(CLIENT_EVENTS.JOIN_PARTY, session);
     if (result) {
-      setRole("player");
-      setParty(result.room);
-      setGame(result.game);
+      applyPlayerJoin(result, session);
     }
-  }, [runAction]);
+  }, [applyPlayerJoin, runAction]);
 
   const selectGame = useCallback((gameId) => runAction(CLIENT_EVENTS.SELECT_GAME, { gameId }), [runAction]);
   const startGame = useCallback((gameId) => runAction(CLIENT_EVENTS.START_GAME, { gameId }), [runAction]);
@@ -116,6 +215,9 @@ export function usePartySocket() {
   const submitAction = useCallback((action) => runAction(CLIENT_EVENTS.PLAYER_ACTION, { action }), [runAction]);
 
   const reset = useCallback(() => {
+    clearPlayerSession();
+    restoredSocketIdRef.current = null;
+    roleRef.current = null;
     setRole(null);
     setParty(null);
     setGame(null);
@@ -126,14 +228,12 @@ export function usePartySocket() {
     role,
     party,
     game,
-    toasts,
     createParty,
     joinParty,
     selectGame,
     startGame,
     returnToLibrary,
     submitAction,
-    dismissToast,
     reset
   };
 }

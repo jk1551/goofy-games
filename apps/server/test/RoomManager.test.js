@@ -37,3 +37,30 @@ test("reconnects an existing player by token", () => {
   assert.equal(result.player.connected, true);
   assert.equal(result.player.socketId, "player-2");
 });
+
+test("a stale socket disconnect cannot mark a rejoined player offline", () => {
+  const manager = new RoomManager();
+  const room = manager.createRoom({ hostSocketId: "host-1" });
+  const firstJoin = manager.joinRoom({
+    roomCode: room.code,
+    socketId: "player-old",
+    playerToken: "same-token",
+    displayName: "Joe"
+  });
+
+  const secondJoin = manager.joinRoom({
+    roomCode: room.code,
+    socketId: "player-new",
+    playerToken: "same-token",
+    displayName: "Joe"
+  });
+
+  manager.disconnect("player-old");
+  const snapshot = manager.toPublicSnapshot(room);
+
+  assert.equal(secondJoin.player.id, firstJoin.player.id);
+  assert.equal(room.players.size, 1);
+  assert.equal(snapshot.players[0].connected, true);
+  assert.equal(secondJoin.player.socketId, "player-new");
+  assert.equal(manager.getMembership("player-new").playerToken, "same-token");
+});
