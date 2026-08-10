@@ -43,7 +43,7 @@ export const GAME_CATALOG = Object.freeze([
     name: "Quick Draw",
     description: "Draw strange prompts and race to identify everyone else's art.",
     emoji: "✏️",
-    minPlayers: 3,
+    minPlayers: 2,
     maxPlayers: 12,
     status: GAME_STATUS.COMING_SOON,
     accent: "yellow"
@@ -53,7 +53,7 @@ export const GAME_CATALOG = Object.freeze([
     name: "Majority Rules",
     description: "Predict the answer the room will choose most often.",
     emoji: "🗳️",
-    minPlayers: 3,
+    minPlayers: 2,
     maxPlayers: 16,
     status: GAME_STATUS.COMING_SOON,
     accent: "blue"
