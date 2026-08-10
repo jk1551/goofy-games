@@ -1,9 +1,11 @@
 import { Countdown } from "../components/Countdown.jsx";
 import { Logo } from "../components/Logo.jsx";
 import "../reveal.css";
+import "../game-over.css";
 
 export function HostGameView({ party, game, onReturnToLibrary }) {
   const isReveal = game?.phase === "reveal" && game?.reveal;
+  const isGameOver = game?.phase === "game-over" && game?.finalResult;
 
   return (
     <main className="host-game-shell">
@@ -15,7 +17,9 @@ export function HostGameView({ party, game, onReturnToLibrary }) {
         </div>
       </header>
 
-      {isReveal ? (
+      {isGameOver ? (
+        <GameOverStage game={game} onReturnToLibrary={onReturnToLibrary} />
+      ) : isReveal ? (
         <RevealStage game={game} />
       ) : (
         <PlayStage party={party} game={game} />
@@ -28,10 +32,13 @@ function PlayStage({ party, game }) {
   const isVoting = game?.phase === "select-answer";
   const completed = isVoting ? (game?.voteCount ?? 0) : (game?.submissionCount ?? 0);
   const label = isVoting ? "votes" : "answers";
+  const roundLabel = game?.totalRounds
+    ? `Round ${game?.round ?? 1} of ${game.totalRounds}`
+    : `Round ${game?.round ?? 1}`;
 
   return (
     <section className="host-stage">
-      <div className="host-stage__round">Round {game?.round ?? 1}</div>
+      <div className="host-stage__round">{roundLabel}</div>
       <Countdown deadline={game?.deadline} />
       <span className="eyebrow">{game?.message ?? "Starting game…"}</span>
       <h1>{game?.prompt ?? "Everybody get ready!"}</h1>
@@ -49,11 +56,13 @@ function PlayStage({ party, game }) {
 }
 
 function RevealStage({ game }) {
+  const finalRound = game.round >= game.totalRounds;
+
   return (
     <section className="reveal-stage">
       <div className="reveal-stage__heading">
         <div>
-          <div className="host-stage__round">Round {game.round} results</div>
+          <div className="host-stage__round">Round {game.round} of {game.totalRounds} results</div>
           <span className="eyebrow">The truth was</span>
           <h1>{game.reveal.correctAnswer}</h1>
         </div>
@@ -90,9 +99,39 @@ function RevealStage({ game }) {
               </div>
             ))}
           </div>
-          <p>Next round starts automatically.</p>
+          <p>{finalRound ? "Final results coming up…" : "Next round starts automatically."}</p>
         </aside>
       </div>
+    </section>
+  );
+}
+
+function GameOverStage({ game, onReturnToLibrary }) {
+  const winners = game.finalResult.winners ?? [];
+  const winnerText = winners.length === 1
+    ? `${winners[0].name} wins!`
+    : `${winners.map((winner) => winner.name).join(" & ")} tie!`;
+
+  return (
+    <section className="game-over-stage">
+      <div className="game-over-stage__trophy">🏆</div>
+      <span className="eyebrow">Bluff Party champion{winners.length === 1 ? "" : "s"}</span>
+      <h1>{winnerText}</h1>
+      <p>{game.message}</p>
+
+      <div className="game-over-scoreboard">
+        {game.finalResult.scoreboard.map((player, index) => (
+          <div className={`game-over-score ${index === 0 ? "game-over-score--winner" : ""}`} key={player.id}>
+            <span>{index + 1}</span>
+            <strong>{player.name}</strong>
+            <b>{player.score.toLocaleString()} pts</b>
+          </div>
+        ))}
+      </div>
+
+      <button className="button button--primary button--large" type="button" onClick={onReturnToLibrary}>
+        Back to game library <span>→</span>
+      </button>
     </section>
   );
 }
