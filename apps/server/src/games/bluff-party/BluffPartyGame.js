@@ -6,23 +6,28 @@ const VOTE_DURATION_MS = 30_000;
 const REVEAL_DURATION_MS = 12_000;
 const TRUTH_POINTS = 1_000;
 const BLUFF_POINTS = 500;
+const DEFAULT_QUESTION_COUNT = 5;
+const ALLOWED_QUESTION_COUNTS = new Set([3, 5, 7, 10]);
 
 export class BluffPartyGame extends BaseGame {
   constructor(context) {
     super(context);
+    this.questionCount = normalizeQuestionCount(context.settings?.questionCount);
     this.submissions = new Map();
     this.votes = new Map();
     this.choiceEntries = [];
     this.roundPlayerTokens = [];
     this.roundPoints = new Map();
     this.reveal = null;
+    this.finalResult = null;
     this.state = {
       ...this.state,
       gameId: "bluff-party",
       title: "Bluff Party",
       prompt: null,
       inputType: "waiting",
-      message: "Get ready to bluff."
+      message: "Get ready to bluff.",
+      totalRounds: this.questionCount
     };
   }
 
@@ -40,6 +45,7 @@ export class BluffPartyGame extends BaseGame {
     this.choiceEntries = [];
     this.roundPoints.clear();
     this.reveal = null;
+    this.finalResult = null;
     this.roundPlayerTokens = [...this.room.players.keys()];
     this.transitionTo("submit-bluff", BLUFF_DURATION_MS, () => this.finishBluffSubmission());
   }
@@ -154,7 +160,31 @@ export class BluffPartyGame extends BaseGame {
     if (this.state.phase !== "reveal") {
       return;
     }
+
+    if (this.state.round >= this.questionCount) {
+      this.finishGame();
+      return;
+    }
+
     this.startRound(this.state.round + 1);
+  }
+
+  finishGame() {
+    const scoreboard = this.buildScoreboard();
+    const winningScore = scoreboard[0]?.score ?? 0;
+    const winners = scoreboard.filter((player) => player.score === winningScore);
+    const winnerNames = winners.map((player) => player.name);
+
+    this.finalResult = {
+      winners,
+      scoreboard
+    };
+    this.state.prompt = null;
+    this.state.inputType = "waiting";
+    this.state.message = winnerNames.length === 1
+      ? `${winnerNames[0]} wins Bluff Party!`
+      : `${winnerNames.join(" & ")} tie for the win!`;
+    this.transitionTo("game-over", null);
   }
 
   calculateScores() {
@@ -202,18 +232,19 @@ export class BluffPartyGame extends BaseGame {
           pointsEarned: choice.ownerToken ? voters.length * BLUFF_POINTS : 0
         };
       }),
-      scoreboard: this.roundPlayerTokens
-        .map((playerToken) => {
-          const player = this.room.players.get(playerToken);
-          return {
-            id: player?.id ?? playerToken,
-            name: player?.name ?? "Player",
-            roundPoints: this.roundPoints.get(playerToken) ?? 0,
-            score: Number(player?.score ?? 0)
-          };
-        })
-        .sort((left, right) => right.score - left.score || right.roundPoints - left.roundPoints)
+      scoreboard: this.buildScoreboard()
     };
+  }
+
+  buildScoreboard() {
+    return [...this.room.players.entries()]
+      .map(([playerToken, player]) => ({
+        id: player?.id ?? playerToken,
+        name: player?.name ?? "Player",
+        roundPoints: this.roundPoints.get(playerToken) ?? 0,
+        score: Number(player?.score ?? 0)
+      }))
+      .sort((left, right) => right.score - left.score || right.roundPoints - left.roundPoints || left.name.localeCompare(right.name));
   }
 
   getPlayerName(playerToken) {
@@ -228,7 +259,8 @@ export class BluffPartyGame extends BaseGame {
       choices: this.state.phase === "select-answer"
         ? this.choiceEntries.map(({ id, text }) => ({ id, text }))
         : [],
-      reveal: this.state.phase === "reveal" ? this.reveal : null
+      reveal: this.state.phase === "reveal" ? this.reveal : null,
+      finalResult: this.state.phase === "game-over" ? this.finalResult : null
     };
   }
 
@@ -272,6 +304,14 @@ export class BluffPartyGame extends BaseGame {
   getCurrentPrompt() {
     return BLUFF_PROMPTS[(this.state.round - 1) % BLUFF_PROMPTS.length];
   }
+}
+
+function normalizeQuestionCount(value) {
+  const questionCount = Number(value ?? DEFAULT_QUESTION_COUNT);
+  if (!ALLOWED_QUESTION_COUNTS.has(questionCount)) {
+    throw new Error("Choose 3, 5, 7, or 10 questions for Bluff Party.");
+  }
+  return questionCount;
 }
 
 function shuffle(values) {

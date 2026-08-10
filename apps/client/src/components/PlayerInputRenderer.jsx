@@ -14,6 +14,21 @@ export function PlayerInputRenderer({ game, onSubmit }) {
     return <WaitingMessage title="You're in!" message="The host is choosing a game." />;
   }
 
+  if (game.phase === "game-over" && game.finalResult) {
+    const winners = game.finalResult.winners ?? [];
+    const winnerText = winners.length === 1
+      ? `${winners[0].name} wins!`
+      : `${winners.map((winner) => winner.name).join(" & ")} tie!`;
+
+    return (
+      <WaitingMessage
+        title={winnerText}
+        message={game.message ?? "The game is over. Watch the main screen for final scores."}
+        emoji="🏆"
+      />
+    );
+  }
+
   if (game.inputType === "text") {
     if (game.hasSubmitted || pendingPhase === "submit-bluff") {
       return <WaitingMessage title="Answer locked" message="Now wait for everyone else to finish." emoji="✅" />;
@@ -34,7 +49,7 @@ export function PlayerInputRenderer({ game, onSubmit }) {
     return (
       <div className="player-game-card">
         <div className="player-game-card__topline">
-          <span>Round {game.round}</span>
+          <span>Round {game.round}{game.totalRounds ? ` of ${game.totalRounds}` : ""}</span>
           <Countdown deadline={game.deadline} />
         </div>
         <span className="eyebrow">{game.message}</span>
@@ -83,7 +98,7 @@ export function PlayerInputRenderer({ game, onSubmit }) {
     return (
       <div className="player-game-card">
         <div className="player-game-card__topline">
-          <span>Round {game.round}</span>
+          <span>Round {game.round}{game.totalRounds ? ` of ${game.totalRounds}` : ""}</span>
           <Countdown deadline={game.deadline} />
         </div>
         <span className="eyebrow">{game.message}</span>

@@ -58,12 +58,13 @@ export function registerSocketHandlers({ io, socket, roomManager, gameRegistry }
     }
   });
 
-  socket.on(CLIENT_EVENTS.START_GAME, ({ gameId } = {}, ack) => {
+  socket.on(CLIENT_EVENTS.START_GAME, ({ gameId, settings } = {}, ack) => {
     try {
       const room = roomManager.assertHost(socket.id);
       const selectedGameId = gameId ?? room.selectedGameId;
       const game = gameRegistry.create(selectedGameId, {
         room,
+        settings,
         onStateChanged: () => broadcastGameState(io, room)
       });
       roomManager.attachGame(socket.id, game);

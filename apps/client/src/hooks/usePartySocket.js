@@ -210,7 +210,7 @@ export function usePartySocket() {
   }, [applyPlayerJoin, runAction]);
 
   const selectGame = useCallback((gameId) => runAction(CLIENT_EVENTS.SELECT_GAME, { gameId }), [runAction]);
-  const startGame = useCallback((gameId) => runAction(CLIENT_EVENTS.START_GAME, { gameId }), [runAction]);
+  const startGame = useCallback((gameId, settings = {}) => runAction(CLIENT_EVENTS.START_GAME, { gameId, settings }), [runAction]);
   const returnToLibrary = useCallback(() => runAction(CLIENT_EVENTS.RETURN_TO_LIBRARY), [runAction]);
   const submitAction = useCallback((action) => runAction(CLIENT_EVENTS.PLAYER_ACTION, { action }), [runAction]);
 

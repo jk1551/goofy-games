@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { BluffPartyGame } from "../src/games/bluff-party/BluffPartyGame.js";
 
-function createGame() {
+function createGame(settings) {
   const room = {
     players: new Map([
       ["player-1", { id: "id-1", token: "player-1", name: "Alice", score: 100 }],
@@ -10,13 +10,20 @@ function createGame() {
       ["player-3", { id: "id-3", token: "player-3", name: "Cara", score: 300 }]
     ])
   };
-  return new BluffPartyGame({ room, onStateChanged: () => {} });
+  return new BluffPartyGame({ room, settings, onStateChanged: () => {} });
 }
 
 function submitAllBluffs(game) {
   game.handlePlayerAction({ playerToken: "player-1", action: { type: "text", value: "One" } });
   game.handlePlayerAction({ playerToken: "player-2", action: { type: "text", value: "Two" } });
   game.handlePlayerAction({ playerToken: "player-3", action: { type: "text", value: "Three" } });
+}
+
+function voteForTruth(game) {
+  const truth = game.choiceEntries.find((choice) => choice.isCorrect);
+  for (const playerToken of ["player-1", "player-2", "player-3"]) {
+    game.handlePlayerAction({ playerToken, action: { type: "choice", value: truth.id } });
+  }
 }
 
 test("moves to answer selection immediately when every player submits", () => {
@@ -138,14 +145,10 @@ test("reveal shows who voted for what and applies round points to cumulative sco
 });
 
 test("reveal automatically advances into a fresh next round without resetting scores", () => {
-  const game = createGame();
+  const game = createGame({ questionCount: 3 });
   game.start();
   submitAllBluffs(game);
-
-  const truth = game.choiceEntries.find((choice) => choice.isCorrect);
-  for (const playerToken of ["player-1", "player-2", "player-3"]) {
-    game.handlePlayerAction({ playerToken, action: { type: "choice", value: truth.id } });
-  }
+  voteForTruth(game);
 
   assert.equal(game.getPublicState().phase, "reveal");
   const firstPrompt = game.getPublicState().prompt;
@@ -153,6 +156,7 @@ test("reveal automatically advances into a fresh next round without resetting sc
 
   const nextRound = game.getPublicState();
   assert.equal(nextRound.round, 2);
+  assert.equal(nextRound.totalRounds, 3);
   assert.equal(nextRound.phase, "submit-bluff");
   assert.equal(nextRound.inputType, "text");
   assert.notEqual(nextRound.prompt, firstPrompt);
@@ -162,4 +166,42 @@ test("reveal automatically advances into a fresh next round without resetting sc
   assert.equal(game.room.players.get("player-2").score, 1_200);
   assert.equal(game.room.players.get("player-3").score, 1_300);
   game.stop();
+});
+
+test("configured question count becomes the final round and announces the winner", () => {
+  const game = createGame({ questionCount: 3 });
+  game.startRound(3);
+  submitAllBluffs(game);
+
+  const aliceBluff = game.choiceEntries.find((choice) => choice.ownerToken === "player-1");
+  const truth = game.choiceEntries.find((choice) => choice.isCorrect);
+  game.handlePlayerAction({ playerToken: "player-1", action: { type: "choice", value: truth.id } });
+  game.handlePlayerAction({ playerToken: "player-2", action: { type: "choice", value: aliceBluff.id } });
+  game.handlePlayerAction({ playerToken: "player-3", action: { type: "choice", value: aliceBluff.id } });
+
+  assert.equal(game.getPublicState().phase, "reveal");
+  game.finishReveal();
+
+  const finalState = game.getPublicState();
+  assert.equal(finalState.phase, "game-over");
+  assert.equal(finalState.round, 3);
+  assert.equal(finalState.totalRounds, 3);
+  assert.equal(finalState.deadline, null);
+  assert.equal(finalState.reveal, null);
+  assert.equal(finalState.finalResult.winners.length, 1);
+  assert.equal(finalState.finalResult.winners[0].name, "Alice");
+  assert.equal(finalState.finalResult.scoreboard[0].name, "Alice");
+  assert.match(finalState.message, /Alice wins Bluff Party/i);
+  game.stop();
+});
+
+test("uses five questions by default and rejects unsupported counts", () => {
+  const game = createGame();
+  assert.equal(game.getPublicState().totalRounds, 5);
+  game.stop();
+
+  assert.throws(
+    () => createGame({ questionCount: 4 }),
+    /3, 5, 7, or 10 questions/i
+  );
 });

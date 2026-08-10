@@ -12,7 +12,21 @@ export const GAME_CATALOG = Object.freeze([
     minPlayers: 3,
     maxPlayers: 10,
     status: GAME_STATUS.AVAILABLE,
-    accent: "purple"
+    accent: "purple",
+    settings: Object.freeze([
+      {
+        id: "questionCount",
+        label: "Questions per game",
+        type: "select",
+        defaultValue: 5,
+        options: Object.freeze([
+          { value: 3, label: "3 questions" },
+          { value: 5, label: "5 questions" },
+          { value: 7, label: "7 questions" },
+          { value: 10, label: "10 questions" }
+        ])
+      }
+    ])
   },
   {
     id: "quick-draw",
