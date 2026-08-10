@@ -278,7 +278,6 @@ export class FakinItGame extends BaseGame {
   }
 
   buildReveal({ caught, roundComplete }) {
-    const revealFaker = roundComplete;
     return {
       type: "fakin-it",
       caught,
@@ -287,14 +286,14 @@ export class FakinItGame extends BaseGame {
       maxAttempts: MAX_ATTEMPTS,
       category: this.getCurrentCategory().name,
       task: this.getPublicTask(),
-      fakerName: revealFaker ? this.getPlayerName(this.fakerToken) : null,
+      fakerName: roundComplete ? this.getPlayerName(this.fakerToken) : null,
       votes: this.roundPlayerTokens.map((playerToken) => ({
         voterName: this.getPlayerName(playerToken),
         accusedName: this.getPlayerName(this.getVotedForToken(playerToken)),
-        correct: this.getVotedForToken(playerToken) === this.fakerToken
+        correct: roundComplete ? this.getVotedForToken(playerToken) === this.fakerToken : null
       })),
       responses: this.buildResponses(),
-      scoreboard: this.buildScoreboard()
+      scoreboard: roundComplete ? this.buildScoreboard() : []
     };
   }
 
