@@ -13,7 +13,10 @@ function getDefaultSettings(game) {
 
 export function HostLibraryView({ party, onSelectGame, onStartGame }) {
   const selectedGame = GAME_CATALOG.find((game) => game.id === party.selectedGameId);
-  const enoughPlayers = party.players.length >= (selectedGame?.minPlayers ?? 1);
+  const playerCount = party.players.length;
+  const enoughPlayers = playerCount >= (selectedGame?.minPlayers ?? 1);
+  const withinPlayerLimit = playerCount <= (selectedGame?.maxPlayers ?? Number.POSITIVE_INFINITY);
+  const validPlayerCount = enoughPlayers && withinPlayerLimit;
   const defaults = useMemo(() => getDefaultSettings(selectedGame), [selectedGame]);
   const [settings, setSettings] = useState(defaults);
 
@@ -24,6 +27,12 @@ export function HostLibraryView({ party, onSelectGame, onStartGame }) {
   const updateSetting = (settingId, value) => {
     setSettings((current) => ({ ...current, [settingId]: value }));
   };
+
+  const playerCountMessage = !enoughPlayers
+    ? `Needs at least ${selectedGame?.minPlayers} players.`
+    : !withinPlayerLimit
+      ? `Supports up to ${selectedGame?.maxPlayers} players.`
+      : "Ready when you are.";
 
   return (
     <main className="dashboard-shell">
@@ -88,13 +97,13 @@ export function HostLibraryView({ party, onSelectGame, onStartGame }) {
             <div>
               <span>Up next</span>
               <strong>{selectedGame?.emoji} {selectedGame?.name}</strong>
-              <small>{enoughPlayers ? "Ready when you are." : `Needs at least ${selectedGame?.minPlayers} players.`}</small>
+              <small>{playerCountMessage}</small>
             </div>
             <button
               className="button button--primary button--large"
               type="button"
               onClick={() => onStartGame(party.selectedGameId, settings)}
-              disabled={!enoughPlayers}
+              disabled={!validPlayerCount}
             >
               Start game <span>→</span>
             </button>
